@@ -3,92 +3,62 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Elf {
     number: u8,
     calories: u32,
 }
 
+impl Elf {
+    fn new(number: u8, calories: u32) -> Self {
+        Self { number, calories }
+    }
+
+    fn default() -> Self {
+        Self::new(0, 0)
+    }
+
+    fn reset(&mut self) {
+        self.number += 1;
+        self.calories = 0;
+    }
+
+    fn sum_calories(&mut self, calories: u32) {
+        self.calories += calories
+    }
+
+    fn compare_elfs(&self, elf1: Elf, elf2: Elf, elf3: Elf) -> Vec<Elf> {
+        if self.calories > elf1.calories {
+            return vec![self.clone(), elf1, elf2];
+        } else if self.calories > elf2.calories {
+            return vec![elf1, self.clone(), elf2];
+        } else if self.calories > elf3.calories {
+            return vec![elf1, elf2, self.clone()];
+        } else {
+            return vec![elf1, elf2, elf3];
+        }
+    }
+}
+
 fn main() {
     let input = File::open("../input.txt").expect("File read");
-    let entries = BufReader::new(input).lines();
+    let lines = BufReader::new(input).lines();
 
-    let mut current_elf = Elf {
-        number: 1,
-        calories: 0,
-    };
+    let mut current_elf = Elf::new(1, 0);
+    let mut winning_elfs = vec![Elf::default(), Elf::default(), Elf::default()];
 
-    let mut winning_elfs = vec![
-        Elf {
-            number: 0,
-            calories: 0,
-        },
-        Elf {
-            number: 0,
-            calories: 0,
-        },
-        Elf {
-            number: 0,
-            calories: 0,
-        },
-    ];
-
-    for line in entries {
+    for line in lines {
         match line {
-            Ok(line) => match line.parse::<u32>() {
-                Ok(value) => current_elf.calories += value,
+            Ok(entry) => match entry.parse::<u32>() {
+                Ok(calories) => current_elf.sum_calories(calories),
                 Err(_) => {
-                    println!("Current elf: {:?}", current_elf);
+                    winning_elfs = current_elf.compare_elfs(
+                        winning_elfs[0].clone(),
+                        winning_elfs[1].clone(),
+                        winning_elfs[2].clone(),
+                    );
 
-                    if current_elf.calories > winning_elfs[0].calories {
-                        winning_elfs = vec![
-                            Elf {
-                                number: current_elf.number,
-                                calories: current_elf.calories,
-                            },
-                            Elf {
-                                number: winning_elfs[0].number,
-                                calories: winning_elfs[0].calories,
-                            },
-                            Elf {
-                                number: winning_elfs[1].number,
-                                calories: winning_elfs[1].calories,
-                            },
-                        ]
-                    } else if current_elf.calories > winning_elfs[1].calories {
-                        winning_elfs = vec![
-                            Elf {
-                                number: winning_elfs[0].number,
-                                calories: winning_elfs[0].calories,
-                            },
-                            Elf {
-                                number: current_elf.number,
-                                calories: current_elf.calories,
-                            },
-                            Elf {
-                                number: winning_elfs[1].number,
-                                calories: winning_elfs[1].calories,
-                            },
-                        ]
-                    } else if current_elf.calories > winning_elfs[2].calories {
-                        winning_elfs = vec![
-                            Elf {
-                                number: winning_elfs[0].number,
-                                calories: winning_elfs[0].calories,
-                            },
-                            Elf {
-                                number: winning_elfs[1].number,
-                                calories: winning_elfs[1].calories,
-                            },
-                            Elf {
-                                number: current_elf.number,
-                                calories: current_elf.calories,
-                            },
-                        ]
-                    }
-
-                    current_elf.number += 1;
-                    current_elf.calories = 0;
+                    current_elf.reset();
                 }
             },
             Err(error) => println!("Error reading the line: {error}"),
